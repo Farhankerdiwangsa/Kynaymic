@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KynayMic - Hasil Pencarian</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers:wght@400&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                background-color: #FFF9E0;
+                font-family: 'Inter', sans-serif;
+                color: #000000;
+                overflow-x: hidden;
+            }
+        }
+        @layer components {
+            .comic-title-stroke {
+                font-family: 'Bangers', cursive;
+                letter-spacing: 1px;
+                color: #FFD75C !important;
+                text-shadow:
+                    2px 2px 0 #000,
+                    -2px -2px 0 #000,
+                    2px -2px 0 #000,
+                    -2px 2px 0 #000,
+                    2px 0 0 #000,
+                    -2px 0 0 #000,
+                    0 2px 0 #000,
+                    0 -2px 0 #000,
+                    1px 1px 2px rgba(0, 0, 0, 0.6);
+            }
+            
+            .comic-border {
+                border: 4px solid #000000;
+            }
+            
+            .comic-shadow {
+                box-shadow: 6px 6px 0px #000000;
+            }
+
+            .comic-search-input {
+                background-color: #FFF9E0;
+                border: 4px solid #000000;
+                border-radius: 0.375rem;
+                padding: 0.75rem 1.25rem;
+                color: #000000;
+                font-family: 'Bangers', cursive;
+                letter-spacing: 1px;
+                font-size: 1.25rem;
+                box-shadow: 6px 6px 0px #000000;
+            }
+            .comic-search-input::placeholder {
+                color: #000000;
+                opacity: 0.7;
+            }
+        }
+        @layer utilities {
+            .tap-highlight-transparent {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mustard: '#FFC300',
+                        panel: '#FFF9E0',
+                        textblack: '#000000',
+                    },
+                    fontFamily: {
+                        bangers: ['Bangers', 'cursive'],
+                        inter: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-panel text-textblack font-inter">
+
+    <div id="search-loading-state" class="fixed inset-0 bg-mustard z-50 flex justify-center items-center p-4">
+        <div class="bg-panel comic-border rounded-md p-8 sm:p-12 comic-shadow text-center max-w-md w-full relative overflow-hidden">
+            
+            <div class="relative mx-auto w-40 h-40 md:w-56 md:h-56 lg:w-[300px] lg:h-[300px]">
+                <svg id="book" class="w-full h-full opacity-0" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 80 V 20 C 10 10, 30 10, 48 20 L 48 80 C 30 90, 10 90, 10 80 Z" fill="#FFF9E0" stroke="#000" stroke-width="4"/>
+                    <path d="M90 80 V 20 C 90 10, 70 10, 52 20 L 52 80 C 70 90, 90 90, 90 80 Z" fill="#FFF9E0" stroke="#000" stroke-width="4"/>
+                    <path d="M48 25 C 60 20, 70 20, 70 25 M 48 35 C 60 30, 70 30, 70 35 M 48 45 C 60 40, 70 40, 70 45 M 48 55 C 60 50, 70 50, 70 55 M 48 65 C 60 60, 70 60, 70 65" stroke="#000" stroke-width="2"/>
+                    <path d="M30 25 C 40 20, 50 20, 50 25 M 30 35 C 40 30, 50 30, 50 35 M 30 45 C 40 40, 50 40, 50 45 M 30 55 C 40 50, 50 50, 50 55 M 30 65 C 40 60, 50 60, 50 65" stroke="#000" stroke-width="2" transform="scale(-1, 1) translate(-100, 0)"/>
+                </svg>
+                
+                <svg id="magnifier" class="w-32 h-32 md:w-44 md:h-44 lg:w-60 lg:h-60 absolute top-1/4 left-1/2 -translate-x-1/2 opacity-0" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="40" cy="40" r="25" fill="rgba(255, 255, 255, 0.3)" stroke="#000" stroke-width="6"/>
+                    <line x1="60" y1="60" x2="80" y2="80" stroke="#000" stroke-width="10" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <div id="loading-text" class="comic-title-stroke text-4xl sm:text-5xl text-mustard mt-4 opacity-0">
+                Mencari Komik...
+            </div>
+        </div>
+    </div>
+
+    <div id="error-state" class="fixed inset-0 bg-mustard z-40 flex justify-center items-center p-4 hidden">
+        <div class="bg-panel comic-border rounded-md p-8 sm:p-12 text-center text-textblack comic-shadow max-w-lg w-full">
+            <div class="text-7xl sm:text-9xl">圻</div>
+            
+            <div class="comic-title-stroke text-5xl sm:text-7xl text-mustard mt-4">
+                Oops! Panel Kosong!
+            </div>
+            
+            <div class="font-inter text-xl sm:text-2xl mt-6">
+                Tidak bisa memuat cerita. Coba lagi nanti, pahlawan!
+            </div>
+            
+            <button id="retry-button" class="mt-10 bg-mustard font-bangers text-3xl px-10 py-3 comic-border rounded-md comic-shadow text-textblack comic-title-stroke tracking-wider">
+                Coba Lagi
+            </button>
+        </div>
+    </div>
+
+    <div id="main-content" class="hidden">
+
+        <header id="navbar" class="bg-mustard comic-border border-b-8 p-3 sm:p-4 md:p-6 flex flex-row items-center gap-4 shadow-lg sticky top-0 z-30">
+            <button id="back-button" class="text-textblack text-2xl md:text-3xl font-bold tap-highlight-transparent transition-transform duration-150 ease-in-out">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="flex-grow">
+                <input id="search-input" type="text" placeholder="Cari komik... 剥" class="w-full comic-search-input">
+            </div>
+        </header>
+
+        <section id="hero-popular" class="relative w-full overflow-hidden border-b-8 comic-border bg-mustard py-12 md:py-16">
+            <div id="hero-bg-blur" class="absolute inset-0 blur-2xl scale-110 bg-cover bg-center opacity-40" style="background-image: url('https://placehold.co/300x400/FFC300/000?text=KynayMic');"></div>
+            
+            <div class="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 flex flex-col lg:flex-row items-center justify-center lg:justify-start text-center lg:text-left gap-8">
+                <img id="hero-img" src="https://placehold.co/300x400/FFF9E0/000?text=Memuat" alt="Komik Populer" class="w-48 h-64 sm:w-60 sm:h-80 md:w-72 md:h-96 object-cover comic-border comic-shadow rounded-md flex-shrink-0">
+                
+                <div class="flex flex-col items-center lg:items-start">
+                    <h2 id="hero-title-h2" class="comic-title-stroke text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-mustard">🔍 Hasil Pencarian Anda</h2>
+                    
+                    <p id="hero-title" class="font-bangers text-2xl sm:text-3xl md:text-4xl mt-4 text-black truncate max-w-xl">Memuat Judul...</p>
+                    
+                    <p id="hero-chapter" class="font-inter text-lg sm:text-xl md:text-2xl mt-1 text-gray-800">Memuat Info...</p>
+                    
+                    <a id="hero-button" href="#" class="inline-block mt-6 bg-black text-mustard font-bangers text-xl sm:text-2xl md:text-3xl px-8 py-3 comic-border comic-shadow rounded-md hover:bg-gray-800 transition-colors duration-200 tap-highlight-transparent">
+                        Baca Sekarang
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="latest-updates-section" class="container mx-auto px-4 sm:px-6 md:px-8 py-12">
+            <h2 id="main-grid-title" class="comic-title-stroke text-4xl sm:text-5xl md:text-6xl mb-8 text-mustard">
+                Hasil Pencarian
+            </h2>
+            
+            <div id="comic-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+            </div>
+            
+            <button id="load-more" class="mt-10 bg-mustard font-bangers text-2xl px-8 py-3 comic-border rounded-md comic-shadow text-textblack comic-title-stroke hidden w-full max-w-xs mx-auto block disabled:opacity-50 disabled:cursor-wait" disabled>
+                Muat Lebih Banyak
+            </button>
+
+            <div id="no-results-panel" class="hidden bg-panel comic-border rounded-md p-8 sm:p-12 comic-shadow text-center max-w-md w-full mx-auto mt-10">
+                <div class="comic-title-stroke text-4xl sm:text-5xl text-mustard">
+                    Yah, Kosong!
+                </div>
+                <div id="no-results-text" class="font-inter text-lg sm:text-xl text-textblack mt-4">
+                    Tidak ditemukan hasil untuk pencarian Anda!
+                </div>
+            </div>
+        </section>
+
+        <footer id="footer" class="bg-mustard border-t-8 comic-border p-4 sm:p-6 text-center shadow-inner mt-16">
+            <p class="font-bangers text-lg sm:text-xl text-textblack tracking-wide">
+                ﾂｩ 2025 KynayMic | Created by Farhan Kertadiwangsa
+            </p>
+        </footer>
+
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const queryParams = new URLSearchParams(window.location.search);
+            const query = queryParams.get("query");
+            let currentPage = 1;
+            const API_URL = (page = 1) => `/api/proxy?rest=komikstation/search/${encodeURIComponent(query)}/${page}`;
+            
+            const searchLoadingState = document.getElementById('search-loading-state');
+            const magnifier = document.getElementById('magnifier');
+            const book = document.getElementById('book');
+            const errorState = document.getElementById('error-state');
+            const mainContent = document.getElementById('main-content');
+            const retryButton = document.getElementById('retry-button');
+            const searchInput = document.getElementById('search-input');
+            const backButton = document.getElementById('back-button');
+            
+            const navbar = document.getElementById('navbar');
+            const heroPopular = document.getElementById('hero-popular');
+            const heroTitleH2 = document.getElementById('hero-title-h2');
+            const comicGrid = document.getElementById('comic-grid');
+            const footer = document.getElementById('footer');
+            const mainGridTitle = document.getElementById("main-grid-title");
+            const noResultsPanel = document.getElementById('no-results-panel');
+            const noResultsText = document.getElementById('no-results-text');
+            const loadMoreButton = document.getElementById('load-more');
+
+            searchInput.value = query || "";
+
+            gsap.registerPlugin(ScrollTrigger);
+
+            async function fetchData(page = 1) {
+                if (page === 1) {
+                    showLoading();
+                } else {
+                    loadMoreButton.disabled = true;
+                    loadMoreButton.textContent = "Memuat...";
+                }
+
+                if (!query) {
+                    populateHeroBanner(null, "Silakan masukkan kata kunci.");
+                    showNoResults("Silakan masukkan kata kunci di kolom pencarian.");
+                    
+                    const tl = gsap.timeline();
+                    tl.to(searchLoadingState, { 
+                        scale: 0.8, 
+                        opacity: 0, 
+                        duration: 0.4, 
+                        ease: "power1.in",
+                        delay: 0.5
+                    })
+                    .add(() => {
+                        searchLoadingState.classList.add('hidden');
+                        errorState.classList.add('hidden');
+                        mainContent.classList.remove('hidden');
+                    })
+                    .add(() => {
+                        runEntryAnimations();
+                        addInteractiveAnimations();
+                    });
+                    return;
+                }
+
+                try {
+                    const response = await fetch(API_URL(page));
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    
+                    if (data.success && Array.isArray(data.seriesList)) {
+                        if (data.seriesList.length > 0) {
+                            if (page === 1) {
+                                mainGridTitle.textContent = `Hasil untuk "${query}"`;
+                                populateHeroBanner(data.seriesList[0]);
+                                comicGrid.innerHTML = "";
+                                comicGrid.classList.remove('hidden');
+                                mainGridTitle.classList.remove('hidden');
+                                noResultsPanel.classList.add('hidden');
+                            }
+                            populateComicGrid(data.seriesList);
+                            handlePaginationButton(data.seriesList.length);
+                        } else {
+                            if (page === 1) {
+                                const message = `Tidak ada hasil untuk "${query}"`;
+                                populateHeroBanner(null, message);
+                                showNoResults(message);
+                            } else {
+                                handlePaginationButton(0);
+                            }
+                        }
+                        
+                        if (page === 1) {
+                            showContent();
+                        }
+                    } else {
+                        if (page === 1) {
+                            const message = `Tidak ada hasil untuk "${query}"`;
+                            populateHeroBanner(null, message);
+                            showNoResults(message);
+                            showContent();
+                        } else {
+                            handlePaginationButton(0);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data komik:", error);
+                    if (page === 1) {
+                        showError();
+                    }
+                } finally {
+                    if (loadMoreButton) {
+                        loadMoreButton.disabled = false;
+                        loadMoreButton.textContent = "Muat Lebih Banyak";
+                    }
+                }
+            }
+            
+            function showLoading() {
+                searchLoadingState.classList.remove('hidden');
+                errorState.classList.add('hidden');
+                mainContent.classList.add('hidden');
+                
+                const loadingTl = gsap.timeline();
+                loadingTl.fromTo(searchLoadingState.firstElementChild,
+                    { scale: 0.8, opacity: 0, rotation: -5 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "back.out(1.7)" }
+                );
+                loadingTl.fromTo([book, magnifier, "#loading-text"], 
+                    { opacity: 0, y: 20 }, 
+                    { opacity: 1, y: 0, duration: 0.5, stagger: 0.1 }, 
+                    "-=0.3"
+                );
+
+                gsap.timeline({ repeat: -1, yoyo: false, delay: 0.5, repeatDelay: 0.2 })
+                    .to(magnifier, { x: -30, y: 10, rotation: -15, duration: 1.5, ease: "power2.inOut" })
+                    .to(magnifier, { x: 30, y: -5, rotation: 10, duration: 1.5, ease: "power2.inOut" })
+                    .to(magnifier, { x: 0, y: 0, rotation: 0, duration: 1.0, ease: "power2.inOut" });
+            }
+
+            function showError() {
+                searchLoadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                mainContent.classList.add('hidden');
+                
+                const errorTl = gsap.timeline();
+                
+                errorTl.fromTo(errorState.firstElementChild,
+                    { scale: 0.7, opacity: 0, rotation: 15 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "elastic.out(1, 0.4)" }
+                );
+                errorTl.fromTo("#error-state .text-7xl", 
+                    { scale: 0, opacity: 0, rotation: -90 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 1, ease: "elastic.out(1, 0.3)" }, 
+                    "-=0.5"
+                );
+                errorTl.fromTo("#error-state .comic-title-stroke", 
+                    { x: -10 }, 
+                    { x: 10, duration: 0.05, repeat: 7, yoyo: true, ease: "power1.inOut" }, 
+                    "-=0.7"
+                );
+                errorTl.fromTo(retryButton, 
+                    { y: 50, opacity: 0, scale: 0.8 }, 
+                    { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 
+                    "-=0.4"
+                );
+            }
+
+            function showContent() {
+                const tl = gsap.timeline();
+                tl.to(searchLoadingState, { 
+                    scale: 0.8, 
+                    opacity: 0, 
+                    duration: 0.4, 
+                    ease: "power1.in" 
+                })
+                .add(() => {
+                    searchLoadingState.classList.add('hidden');
+                    errorState.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                })
+                .add(() => {
+                    runEntryAnimations();
+                    addInteractiveAnimations();
+                });
+            }
+            
+            function showNoResults(message) {
+                mainGridTitle.classList.add('hidden');
+                comicGrid.classList.add('hidden');
+                noResultsPanel.classList.remove('hidden');
+                loadMoreButton.classList.add('hidden');
+                noResultsText.textContent = message;
+                gsap.from(noResultsPanel, { scale: 0.8, opacity: 0, rotation: -5, duration: 0.7, ease: "back.out(1.7)" });
+            }
+
+            function populateHeroBanner(comic, noResultsMessage) {
+                const heroBgBlur = document.getElementById('hero-bg-blur');
+                const heroImg = document.getElementById('hero-img');
+                const heroTitle = document.getElementById('hero-title');
+                const heroChapter = document.getElementById('hero-chapter');
+                const heroButton = document.getElementById('hero-button');
+                const placeholder = 'https://placehold.co/300x400/FFF9E0/000?text=KynayMic';
+
+                if (comic) {
+                    heroTitleH2.innerHTML = "🔍 Hasil Pencarian Anda";
+                    const proxiedImageSrc = comic.image || placeholder;
+
+                    heroBgBlur.style.backgroundImage = `url('${proxiedImageSrc}')`;
+                    heroImg.src = proxiedImageSrc;
+                    heroImg.alt = comic.title;
+                    heroImg.onerror = function() { 
+                        this.src = placeholder; 
+                        heroBgBlur.style.backgroundImage = `url('${placeholder}')`; 
+                    };
+                    
+                    heroTitle.textContent = comic.title;
+                    heroChapter.textContent = `⭐ ${comic.rating || 'N/A'} | ${comic.latestChapter || 'N/A'}`;
+                    heroButton.href = `/detail?slug=${comic.slug}`;
+
+                    heroImg.classList.remove('hidden');
+                    heroButton.classList.remove('hidden');
+                    heroChapter.classList.remove('hidden');
+
+                } else {
+                    heroTitleH2.innerHTML = "🔍 Pencarian Selesai";
+                    heroBgBlur.style.backgroundImage = 'none';
+                    heroImg.src = 'https://placehold.co/300x400/FFF9E0/000?text=:(';
+                    heroTitle.textContent = noResultsMessage || "Tidak ada hasil ditemukan";
+                    
+                    heroImg.classList.remove('hidden');
+                    heroChapter.classList.add('hidden');
+                    heroButton.classList.add('hidden');
+                }
+            }
+
+            function populateComicGrid(comics) {
+                const placeholder = 'https://placehold.co/220x300/FFF9E0/000?text=KynayMic';
+
+                comics.forEach((comic, index) => {
+                    
+                    const proxiedImageSrc = comic.image;
+                    const title = comic.title;
+                    const sub1 = `<i class="fas fa-star text-yellow-500"></i> ${comic.rating || 'N/A'}`;
+                    const sub2 = comic.latestChapter || 'N/A';
+
+                    const cardHTML = `
+                        <a href="/detail?slug=${comic.slug}" class="comic-card bg-white comic-border rounded-md overflow-hidden comic-shadow tap-highlight-transparent flex flex-col">
+                            <div class="relative w-full" style="padding-bottom: 140%;">
+                                <img src="${proxiedImageSrc || placeholder}"
+                                     alt="${title}"
+                                     class="absolute top-0 left-0 w-full h-full object-cover"
+                                     onerror="this.src='${placeholder}'">
+                            </div>
+                            <div class="p-3 sm:p-4 flex-grow flex flex-col">
+                                <h4 class="font-bangers text-xl sm:text-2xl truncate comic-title-stroke text-mustard" title="${title}">${title}</h4>
+                                
+                                <div class="mt-auto pt-2">
+                                    <p class="font-inter font-bold text-sm text-textblack truncate">
+                                        ${sub1}
+                                    </p>
+                                    <p class="font-inter text-xs text-gray-600 truncate">
+                                        ${sub2}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    comicGrid.insertAdjacentHTML('beforeend', cardHTML);
+                });
+
+                gsap.from(".comic-card:not(.gsap-animated)", {
+                    opacity: 0,
+                    y: 80,
+                    scale: 0.9,
+                    rotation: -3,
+                    stagger: 0.05,
+                    duration: 0.5,
+                    ease: "back.out(1.4)",
+                    scrollTrigger: {
+                        trigger: comicGrid,
+                        start: "top 85%",
+                        toggleActions: "play none none none"
+                    },
+                    onComplete: function() {
+                        this.targets().forEach(card => card.classList.add('gsap-animated'));
+                    }
+                });
+            }
+            
+            function handlePaginationButton(resultCount) {
+                const loadMore = document.getElementById("load-more");
+                if (!loadMore) return;
+                
+                const MIN_RESULTS_FOR_NEXT_PAGE = 5;
+
+                if (resultCount >= MIN_RESULTS_FOR_NEXT_PAGE) {
+                    loadMore.classList.remove("hidden");
+                    loadMore.onclick = () => {
+                        currentPage++;
+                        fetchData(currentPage);
+                    };
+                } else {
+                    loadMore.classList.add("hidden");
+                }
+            }
+
+            function runEntryAnimations() {
+                const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+
+                tl.from(navbar, { 
+                    yPercent: -120, 
+                    opacity: 0, 
+                    duration: 1, 
+                    ease: "bounce.out" 
+                });
+
+                tl.from("#navbar button", { 
+                    scale: 0.5, 
+                    skewX: 20, 
+                    opacity: 0, 
+                    duration: 0.7, 
+                    ease: "elastic.out(1, 0.5)" 
+                }, "-=0.7");
+
+                tl.from("#navbar div", { 
+                    xPercent: 100, 
+                    opacity: 0, 
+                    duration: 0.5 
+                }, "-=0.7");
+
+                tl.from(heroPopular, { 
+                    opacity: 0, 
+                    y: -50, 
+                    duration: 0.5 
+                }, "-=0.5");
+                
+                tl.from("#hero-popular img", { scale: 0.8, opacity: 0, rotation: 5, duration: 0.7, ease: "back.out(1.7)" }, "-=0.3");
+                tl.from("#hero-popular h2, #hero-popular p, #hero-popular a", { x: -50, opacity: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }, "-=0.5");
+
+                tl.from(mainGridTitle, {
+                    opacity: 0,
+                    x: -100,
+                    duration: 0.6,
+                    ease: "power3.out"
+                }, "-=0.3");
+
+                gsap.from(footer, { 
+                    yPercent: 100, 
+                    opacity: 0, 
+                    duration: 1, 
+                    ease: "power2.out",
+                    scrollTrigger: {
+                        trigger: footer,
+                        start: "top 98%",
+                        toggleActions: "play none none none"
+                    }
+                });
+            }
+            
+            function addInteractiveAnimations() {
+                
+                comicGrid.addEventListener('mouseenter', (e) => {
+                    const targetCard = e.target.closest('.comic-card');
+                    if (!targetCard) return;
+                    
+                    gsap.to(targetCard, { 
+                        scale: 1.03, 
+                        y: -5, 
+                        boxShadow: "10px 10px 0px #000000", 
+                        duration: 0.2,
+                        ease: "power1.out"
+                    });
+                }, true);
+
+                comicGrid.addEventListener('mouseleave', (e) => {
+                    const targetCard = e.target.closest('.comic-card');
+                    if (!targetCard) return;
+
+                    gsap.to(targetCard, { 
+                        scale: 1, 
+                        y: 0, 
+                        boxShadow: "6px 6px 0px #000000", 
+                        duration: 0.2,
+                        ease: "power1.out"
+                    });
+                }, true);
+                
+                searchInput.addEventListener('focus', () => {
+                    gsap.to(searchInput, { 
+                        scale: 1.02, 
+                        boxShadow: "0 0 0 4px #FFC300, 8px 8px 0px #000000",
+                        backgroundColor: "#FFFFFF", 
+                        duration: 0.2 
+                    });
+                });
+                searchInput.addEventListener('blur', () => {
+                    gsap.to(searchInput, { 
+                        scale: 1, 
+                        boxShadow: "6px 6px 0px #000000",
+                        backgroundColor: "#FFF9E0", 
+                        duration: 0.2 
+                    });
+                });
+                
+                const retryHoverTl = gsap.timeline({ paused: true })
+                    .to(retryButton, { 
+                        scale: 1.1, 
+                        rotation: -3, 
+                        boxShadow: "10px 10px 0px #000000",
+                        x: -4,
+                        y: -4,
+                        duration: 0.2, 
+                        ease: "back.out(2)" 
+                    });
+                retryButton.addEventListener('mouseenter', () => retryHoverTl.play());
+                retryButton.addEventListener('mouseleave', () => retryHoverTl.reverse());
+                
+                const backHoverTl = gsap.timeline({ paused: true })
+                    .to(backButton, { 
+                        scale: 1.15, 
+                        rotation: -5,
+                        duration: 0.2, 
+                        ease: "back.out(2)" 
+                    });
+                backButton.addEventListener('mouseenter', () => backHoverTl.play());
+                backButton.addEventListener('mouseleave', () => backHoverTl.reverse());
+                
+                document.addEventListener('mousedown', (e) => {
+                    const targetButton = e.target.closest('#retry-button, #hero-button, #back-button, #load-more');
+                    if (targetButton) {
+                        gsap.to(targetButton, { scale: 0.95, duration: 0.1, yoyo: true, repeat: 1, ease: "power1.in" });
+                    }
+                }, false);
+                
+                backButton.addEventListener('click', () => {
+                    history.back();
+                });
+            }
+
+            retryButton.addEventListener('click', () => {
+                gsap.to(errorState, {
+                    scale: 0.8,
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: "power1.in",
+                    onComplete: () => fetchData(1)
+                });
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && searchInput.value.trim() !== '') {
+                    const newQuery = encodeURIComponent(searchInput.value.trim());
+                    window.location.href = `/search?query=${newQuery}`;
+                }
+            });
+
+            fetchData(1);
+            
+        });
+    </script>
+</body>
+</html>

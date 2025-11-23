@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KynayMic - Detail Komik</title>
+    
+    <script src="/global-proxy-patch.js" defer></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers:wght@400&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                background-color: #FFF9E0;
+                font-family: 'Inter', sans-serif;
+                color: #000000;
+                overflow-x: hidden;
+            }
+        }
+        @layer components {
+            .comic-title-stroke {
+                font-family: 'Bangers', cursive;
+                letter-spacing: 1px;
+                color: #FFD75C !important;
+                text-shadow:
+                    2px 2px 0 #000,
+                    -2px -2px 0 #000,
+                    2px -2px 0 #000,
+                    -2px 2px 0 #000,
+                    2px 0 0 #000,
+                    -2px 0 0 #000,
+                    0 2px 0 #000,
+                    0 -2px 0 #000,
+                    1px 1px 2px rgba(0, 0, 0, 0.6);
+            }
+            
+            .comic-border {
+                border: 4px solid #000000;
+            }
+            
+            .comic-shadow {
+                box-shadow: 6px 6px 0px #000000;
+            }
+        }
+        @layer utilities {
+            .tap-highlight-transparent {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mustard: '#FFC300',
+                        panel: '#FFF9E0',
+                        textblack: '#000000',
+                    },
+                    fontFamily: {
+                        bangers: ['Bangers', 'cursive'],
+                        inter: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-panel text-textblack font-inter">
+
+    <div id="loading-state" class="fixed inset-0 bg-mustard z-50 flex flex-col justify-center items-center p-4 overflow-hidden">
+        <div id="book" class="relative w-48 h-64 sm:w-64 sm:h-80 [perspective:1000px]">
+            <div id="book-cover" class="absolute inset-0 bg-panel comic-border comic-shadow rounded-lg transform-gpu"></div>
+            <div class="page absolute w-full h-full bg-white comic-border rounded-lg transform-gpu origin-left [transform-style:preserve-3d] [backface-visibility:hidden]"></div>
+            <div class="page absolute w-full h-full bg-white comic-border rounded-lg transform-gpu origin-left [transform-style:preserve-3d] [backface-visibility:hidden]"></div>
+            <div class="page absolute w-full h-full bg-white comic-border rounded-lg transform-gpu origin-left [transform-style:preserve-3d] [backface-visibility:hidden]"></div>
+            <div class="page absolute w-full h-full bg-white comic-border rounded-lg transform-gpu origin-left [transform-style:preserve-3d] [backface-visibility:hidden]"></div>
+        </div>
+        <div id="loading-text" class="comic-title-stroke text-4xl sm:text-5xl text-mustard mt-8">
+            Membuka Chapter...
+        </div>
+        <div id="comic-burst" class="absolute w-64 h-64 opacity-0" style="clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); background-color: #FFD75C;"></div>
+    </div>
+
+    <div id="error-state" class="fixed inset-0 bg-mustard z-40 flex justify-center items-center p-4 hidden">
+        <div class="bg-panel comic-border rounded-md p-8 sm:p-12 text-center text-textblack comic-shadow max-w-lg w-full">
+            <div class="text-7xl sm:text-9xl">🚫</div>
+            
+            <div class="comic-title-stroke text-5xl sm:text-7xl text-mustard mt-4">
+                Oops! Panel Kosong!
+            </div>
+            
+            <div class="font-inter text-xl sm:text-2xl mt-6">
+                Tidak bisa memuat cerita. Coba lagi nanti, pahlawan!
+            </div>
+            
+            <button id="retry-button" class="mt-10 bg-mustard font-bangers text-3xl px-10 py-3 comic-border rounded-md comic-shadow text-textblack comic-title-stroke tracking-wider">
+                Coba Lagi
+            </button>
+        </div>
+    </div>
+
+    <div id="main-content" class="hidden">
+
+        <header id="navbar" class="bg-mustard comic-border border-b-8 p-4 md:p-6 flex items-center justify-between shadow-lg sticky top-0 z-30">
+            <a id="back-button" href="#" class="font-bangers text-4xl sm:text-5xl text-textblack tap-highlight-transparent transform">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h1 class="comic-title-stroke text-5xl sm:text-6xl lg:text-7xl text-textblack text-center px-4">
+                KynayMic
+            </h1>
+            <div class="w-12 sm:w-16"></div>
+        </header>
+
+        <main class="container mx-auto px-4 py-12">
+            <div id="detail-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 opacity-0">
+                
+                <div class="lg:col-span-1 flex flex-col items-center">
+                    <img id="detail-image" src="https://placehold.co/500x700/FFF9E0/000?text=KynayMic" alt="Cover" class="w-full max-w-sm lg:max-w-full h-auto object-cover comic-border comic-shadow rounded-md">
+                    <div id="detail-rating" class="bg-white comic-border rounded-md comic-shadow p-3 px-6 text-2xl font-bangers tracking-wider mt-6">
+                        <i class="fas fa-star text-yellow-400"></i> Rating: -
+                    </div>
+                </div>
+                
+                <div class="lg:col-span-2">
+                    <h2 id="detail-title" class="comic-title-stroke text-5xl md:text-6xl text-mustard">Memuat Judul...</h2>
+                    
+                    <div id="detail-info" class="bg-white comic-border rounded-md comic-shadow p-6 mt-6 text-textblack text-lg space-y-3 font-medium">
+                        <p><strong>Status:</strong> <span id="detail-status" class="font-normal">-</span></p>
+                        <p><strong>Tipe:</strong> <span id="detail-type" class="font-normal">-</span></p>
+                        <p><strong>Rilis:</strong> <span id="detail-released" class="font-normal">-</span></p>
+                        <p><strong>Author:</strong> <span id="detail-author" class="font-normal">-</span></p>
+                        <p><strong>Artist:</strong> <span id="detail-artist" class="font-normal">-</span></p>
+                        <p><strong>Update:</strong> <span id="detail-updatedOn" class="font-normal">-</span></p>
+                    </div>
+                    
+                    <div id="detail-genres" class="flex flex-wrap gap-3 mt-6">
+                    </div>
+                </div>
+            </div>
+
+            <div id="synopsis-section" class="mt-12 opacity-0">
+                <h3 class="comic-title-stroke text-4xl text-mustard mb-4">Sinopsis</h3>
+                <div class="bg-white comic-border rounded-md comic-shadow p-6">
+                    <p id="detail-synopsis" class="text-textblack text-lg leading-relaxed text-justify">
+                        Memuat sinopsis...
+                    </p>
+                </div>
+            </div>
+
+            <div id="chapter-section" class="mt-12 opacity-0">
+                <h3 class="comic-title-stroke text-4xl text-mustard mb-4">Daftar Chapter</h3>
+                <div id="detail-chapters" class="bg-white comic-border rounded-md comic-shadow overflow-hidden max-h-[500px] overflow-y-auto">
+                    <p class="p-6 text-center font-inter text-gray-700">Memuat chapter...</p>
+                </div>
+            </div>
+        </main>
+
+        <footer id="footer" class="bg-mustard border-t-8 comic-border p-6 text-center shadow-inner mt-16">
+            <p class="font-bangers text-xl text-textblack tracking-wide">
+                © 2025 KynayMic | Created by Farhan Kertadiwangsa
+            </p>
+        </footer>
+
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const loadingState = document.getElementById('loading-state');
+            const errorState = document.getElementById('error-state');
+            const mainContent = document.getElementById('main-content');
+            const retryButton = document.getElementById('retry-button');
+            const backButton = document.getElementById('back-button');
+            
+            const navbar = document.getElementById('navbar');
+            const footer = document.getElementById('footer');
+            
+            const detailContent = document.getElementById('detail-content');
+            const detailImage = document.getElementById('detail-image');
+            const detailRating = document.getElementById('detail-rating');
+            const detailTitle = document.getElementById('detail-title');
+            const detailStatus = document.getElementById('detail-status');
+            const detailType = document.getElementById('detail-type');
+            
+            const detailReleased = document.getElementById('detail-released'); 
+            const detailArtist = document.getElementById('detail-artist'); 
+            
+            const detailAuthor = document.getElementById('detail-author');
+            const detailUpdatedOn = document.getElementById('detail-updatedOn');
+            const detailGenres = document.getElementById('detail-genres');
+            const synopsisSection = document.getElementById('synopsis-section');
+            const detailSynopsis = document.getElementById('detail-synopsis');
+            const chapterSection = document.getElementById('chapter-section');
+            const detailChapters = document.getElementById('detail-chapters');
+
+            const placeholder = 'https://placehold.co/500x700/FFF9E0/000?text=KynayMic';
+
+            gsap.registerPlugin(ScrollTrigger);
+            
+            function getSlugFromUrl() {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('slug');
+            }
+
+            
+            async function fetchData(slug) {
+                if (!slug) {
+                    showError();
+                    return;
+                }
+                
+                const API_URL = `/api/proxy?rest=komikstation/manga/${slug}`;
+                showLoading();
+
+                try {
+                    const response = await fetch(API_URL);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        populateData(data);
+                        showContent();
+                    } else {
+                        throw new Error("API request was not successful.");
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data detail:", error);
+                    showError();
+                }
+            }
+            
+            
+            function populateData(data) {
+                
+                
+                detailImage.src = data.imageSrc || placeholder;
+                detailImage.alt = data.title;
+                detailImage.onerror = function() { this.src = placeholder; };
+                
+                
+                detailRating.innerHTML = `<i class="fas fa-star text-yellow-400"></i> Rating: ${data.rating || 'N/A'}`;
+                
+                
+                detailTitle.textContent = data.title;
+                
+                
+                detailStatus.textContent = data.status || '-';
+                
+                
+                detailType.textContent = data.type || '-';
+                
+                
+                detailAuthor.textContent = data.author || '-';
+                
+                
+                detailUpdatedOn.textContent = data.updatedOn || '-';
+                
+                
+                
+                
+                
+                
+                detailSynopsis.textContent = data.synopsis || 'Tidak ada sinopsis.';
+
+                
+                detailGenres.innerHTML = '';
+                (data.genres || []).forEach(genre => {
+                    
+                    detailGenres.innerHTML += `<span class="bg-mustard comic-border rounded-md text-textblack font-bangers text-lg px-4 py-1 comic-shadow cursor-pointer">${genre.name}</span>`;
+                });
+
+                
+                detailChapters.innerHTML = '';
+                if (data.chapters && data.chapters.length > 0) {
+                    data.chapters.forEach(chapter => {
+                        
+                        
+                        const chapterUrl = `/chapter.html?slug=${chapter.slug}`;
+                        
+                        
+                        detailChapters.innerHTML += `
+                            <a href="${chapterUrl}" class="chapter-item block p-4 border-b-2 border-black/10 last:border-b-0 hover:bg-mustard/30 transition-colors duration-200 flex justify-between items-center tap-highlight-transparent">
+                                <span class="font-bangers text-xl text-textblack">${chapter.title}</span>
+                                <span class="font-inter text-sm text-gray-600">${chapter.date}</span>
+                            </a>
+                        `;
+                    });
+                } else {
+                    detailChapters.innerHTML = `<p class="p-6 text-center font-inter text-gray-700">Belum ada chapter.</p>`;
+                }
+            }
+
+            
+            function showLoading() {
+                loadingState.classList.remove('hidden');
+                errorState.classList.add('hidden');
+                mainContent.classList.add('hidden');
+                
+                const book = document.getElementById('book');
+                const bookCover = document.getElementById('book-cover');
+                const comicBurst = document.getElementById('comic-burst');
+                const pages = document.querySelectorAll('#book .page');
+                const loadingText = document.getElementById('loading-text');
+                const loadingTl = gsap.timeline({ defaults: { duration: 0.3, ease: "easeInOutSine" } });
+
+                gsap.set(pages, { rotationY: 0 });
+                gsap.set(comicBurst, { scale: 0, opacity: 0, rotation: 0 });
+
+                loadingTl.from(book, { scale: 0, rotation: -30, opacity: 0, duration: 0.5, ease: 'back.out(1.7)' })
+                         .from(loadingText, { opacity: 0, y: 20, duration: 0.3 }, "-=0.2")
+                         
+                         .fromTo(bookCover, 
+                             { boxShadow: "6px 6px 0px #000000" }, 
+                             { 
+                                 boxShadow: "6px 6px 0px #000000, 0 0 30px 12px rgba(255, 255, 255, 0.8)", 
+                                 duration: 0.4, 
+                                 repeat: 1, 
+                                 yoyo: true, 
+                                 ease: "power1.inOut" 
+                             }, 
+                             "-=0.5"
+                         )
+                         
+                         .to(pages[0], { rotationY: -180 })
+                         .to(pages[1], { rotationY: -180 }, "-=0.15")
+                         .to(pages[2], { rotationY: -180 }, "-=0.15")
+                         .to(pages[3], { rotationY: -180 }, "-=0.15")
+                         
+                         .to(comicBurst, {
+                             scale: 1.2,
+                             opacity: 1,
+                             rotation: 20,
+                             duration: 0.5,
+                             ease: "back.out(1.7)"
+                         }, "-=0.3")
+                         .to(comicBurst, {
+                             scale: 0,
+                             opacity: 0,
+                             duration: 0.3,
+                             ease: "power1.in"
+                         }, "+=0.1");
+            }
+
+            function showError() {
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                mainContent.classList.add('hidden');
+                
+                const errorTl = gsap.timeline();
+                
+                errorTl.fromTo(errorState.firstElementChild,
+                    { scale: 0.7, opacity: 0, rotation: 15 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "elastic.out(1, 0.4)" }
+                );
+                errorTl.fromTo("#error-state .text-7xl", 
+                    { scale: 0, opacity: 0, rotation: -90 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 1, ease: "elastic.out(1, 0.3)" }, 
+                    "-=0.5"
+                );
+                errorTl.fromTo(retryButton, 
+                    { y: 50, opacity: 0, scale: 0.8 }, 
+                    { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 
+                    "-=0.4"
+                );
+            }
+
+            function showContent() {
+                const tl = gsap.timeline();
+                tl.to(loadingState, { 
+                    scale: 0.8, 
+                    opacity: 0, 
+                    duration: 0.4, 
+                    ease: "power1.in" 
+                })
+                .add(() => {
+                    loadingState.classList.add('hidden');
+                    errorState.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                })
+                .add(runEntryAnimations);
+            }
+            
+            function runEntryAnimations() {
+                const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+
+                tl.from(navbar, { yPercent: -120, opacity: 0, duration: 1, ease: "bounce.out" });
+                
+                tl.from(backButton, { scale: 0, opacity: 0, rotation: -180, duration: 0.7, ease: "back.out(1.7)" }, "-=0.7");
+                
+                tl.from("#navbar h1", { scale: 0.5, skewX: 20, opacity: 0, duration: 0.7, ease: "elastic.out(1, 0.5)" }, "-=0.8");
+                
+                tl.to(detailContent, { opacity: 1, duration: 0.1 });
+                
+                tl.from(detailImage, { opacity: 0, scale: 0.8, rotation: 5, duration: 0.7, ease: "back.out(1.4)" }, "-=0.5");
+                
+                tl.from(detailRating, { opacity: 0, y: 30, scale: 0.8, duration: 0.5, ease: "back.out(1.4)" }, "-=0.4");
+                
+                tl.from(detailTitle, { opacity: 0, x: -50, duration: 0.5 }, "-=0.5");
+                
+                tl.from("#detail-info", { opacity: 0, y: 50, duration: 0.5 }, "-=0.4");
+                
+                tl.from("#detail-genres span", { opacity: 0, y: 20, scale: 0.5, stagger: 0.1, duration: 0.3, ease: "back.out(1.7)" }, "-=0.3");
+
+                tl.to(synopsisSection, { opacity: 1, duration: 0.1 }, "-=0.2");
+                tl.from("#synopsis-section h3", { opacity: 0, x: -50, duration: 0.5 }, "-=0.2");
+                tl.from("#synopsis-section div", { opacity: 0, y: 50, duration: 0.5 }, "-=0.4");
+                
+                tl.to(chapterSection, { opacity: 1, duration: 0.1 }, "-=0.2");
+                tl.from("#chapter-section h3", { opacity: 0, x: -50, duration: 0.5 }, "-=0.2");
+                tl.from(detailChapters, { opacity: 0, y: 50, duration: 0.5 }, "-=0.4");
+                
+                tl.from(".chapter-item", {
+                    opacity: 0,
+                    x: -50,
+                    stagger: 0.05,
+                    duration: 0.3,
+                    ease: "power1.out"
+                }, "-=0.3");
+
+                gsap.from(footer, { 
+                    yPercent: 100, 
+                    opacity: 0, 
+                    duration: 1, 
+                    ease: "power2.out",
+                    scrollTrigger: {
+                        trigger: footer,
+                        start: "top 98%",
+                        toggleActions: "play none none none"
+                    }
+                });
+            }
+
+            
+            backButton.addEventListener('mouseenter', () => {
+                gsap.to(backButton, { scale: 1.15, rotate: -10, duration: 0.3, ease: 'back.out(1.7)' });
+            });
+            backButton.addEventListener('mouseleave', () => {
+                gsap.to(backButton, { scale: 1, rotate: 0, duration: 0.3, ease: 'power2.out' });
+            });
+
+            detailImage.addEventListener('mouseenter', () => {
+                gsap.to(detailImage, { scale: 1.03, duration: 0.3, ease: 'power2.out' });
+            });
+            detailImage.addEventListener('mouseleave', () => {
+                gsap.to(detailImage, { scale: 1, duration: 0.3, ease: 'power2.out' });
+            });
+            
+            detailGenres.addEventListener('mouseenter', (e) => {
+                if (e.target.tagName === 'SPAN') {
+                    gsap.to(e.target, { scale: 1.1, duration: 0.2, ease: 'back.out(1.7)' });
+                }
+            }, true);
+            detailGenres.addEventListener('mouseleave', (e) => {
+                if (e.target.tagName === 'SPAN') {
+                    gsap.to(e.target, { scale: 1, duration: 0.2, ease: 'power2.out' });
+                }
+            }, true);
+
+            detailChapters.addEventListener('mouseenter', (e) => {
+                const chapterItem = e.target.closest('.chapter-item');
+                if (chapterItem && !gsap.isTweening(chapterItem)) {
+                    gsap.to(chapterItem, { y: -5, duration: 0.2, ease: 'back.out(1.7)' });
+                }
+            }, true);
+            detailChapters.addEventListener('mouseleave', (e) => {
+                const chapterItem = e.target.closest('.chapter-item');
+                if (chapterItem) {
+                    gsap.to(chapterItem, { y: 0, duration: 0.2, ease: 'power2.out' });
+                }
+            }, true);
+
+
+            backButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.history.back();
+            });
+
+            retryButton.addEventListener('click', () => {
+                const slug = getSlugFromUrl();
+                gsap.to(errorState, {
+                    scale: 0.8,
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: "power1.in",
+                    onComplete: () => fetchData(slug)
+                });
+            });
+
+            
+            const currentSlug = getSlugFromUrl();
+            fetchData(currentSlug);
+            
+        });
+    </script>
+</body>
+</html>

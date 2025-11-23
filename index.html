@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KynayMic - Baca Komik Digital Penuh Aksi!</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers:wght@400&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                background-color: #FFF9E0;
+                font-family: 'Inter', sans-serif;
+                color: #000000;
+                overflow-x: hidden;
+            }
+        }
+        @layer components {
+            .comic-title-stroke {
+                font-family: 'Bangers', cursive;
+                letter-spacing: 1px;
+                color: #FFD75C !important;
+                text-shadow:
+                    2px 2px 0 #000,
+                    -2px -2px 0 #000,
+                    2px -2px 0 #000,
+                    -2px 2px 0 #000,
+                    2px 0 0 #000,
+                    -2px 0 0 #000,
+                    0 2px 0 #000,
+                    0 -2px 0 #000,
+                    1px 1px 2px rgba(0, 0, 0, 0.6);
+            }
+            
+            .comic-border {
+                border: 4px solid #000000;
+            }
+            
+            .comic-shadow {
+                box-shadow: 6px 6px 0px #000000;
+            }
+
+            .comic-search-input {
+                background-color: #FFF9E0;
+                border: 4px solid #000000;
+                border-radius: 0.375rem;
+                padding: 0.75rem 1.25rem;
+                color: #000000;
+                font-family: 'Bangers', cursive;
+                letter-spacing: 1px;
+                font-size: 1.25rem;
+                box-shadow: 6px 6px 0px #000000;
+            }
+            .comic-search-input::placeholder {
+                color: #000000;
+                opacity: 0.7;
+            }
+        }
+        @layer utilities {
+            .tap-highlight-transparent {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mustard: '#FFC300',
+                        panel: '#FFF9E0',
+                        textblack: '#000000',
+                    },
+                    fontFamily: {
+                        bangers: ['Bangers', 'cursive'],
+                        inter: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-panel text-textblack font-inter">
+
+    <div id="loading-state" class="fixed inset-0 bg-mustard z-50 flex justify-center items-center p-4">
+        <div class="bg-panel comic-border rounded-md p-8 sm:p-12 comic-shadow text-center max-w-md w-full">
+            <div id="loading-text" class="comic-title-stroke text-4xl sm:text-5xl text-mustard">
+                Memuat Panel Cerita...
+            </div>
+            <div class="font-inter text-lg sm:text-xl text-textblack mt-4">
+                Menyiapkan halaman komik digital!
+            </div>
+        </div>
+    </div>
+
+    <div id="error-state" class="fixed inset-0 bg-mustard z-40 flex justify-center items-center p-4 hidden">
+        <div class="bg-panel comic-border rounded-md p-8 sm:p-12 text-center text-textblack comic-shadow max-w-lg w-full">
+            <div class="text-7xl sm:text-9xl">🚫</div>
+            
+            <div class="comic-title-stroke text-5xl sm:text-7xl text-mustard mt-4">
+                Oops! Panel Kosong!
+            </div>
+            
+            <div class="font-inter text-xl sm:text-2xl mt-6">
+                Tidak bisa memuat cerita. Coba lagi nanti, pahlawan!
+            </div>
+            
+            <button id="retry-button" class="mt-10 bg-mustard font-bangers text-3xl px-10 py-3 comic-border rounded-md comic-shadow text-textblack comic-title-stroke tracking-wider">
+                Coba Lagi
+            </button>
+        </div>
+    </div>
+
+    <div id="main-content" class="hidden">
+
+        <header id="navbar" class="bg-mustard comic-border border-b-8 p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between shadow-lg sticky top-0 z-30">
+            <a href="/home" class="comic-title-stroke text-5xl sm:text-6xl lg:text-7xl text-textblack text-center lg:text-left tap-highlight-transparent">
+                KynayMic
+            </a>
+            <div class="w-full lg:w-1/3 mt-4 lg:mt-0">
+                <input id="search-input" type="text" placeholder="Cari komik... 🔍" class="w-full comic-search-input">
+            </div>
+        </header>
+
+        <section id="banner-slider" class="bg-mustard border-b-8 comic-border shadow-lg overflow-hidden relative w-full">
+            <div id="slider-container" class="flex transition-transform duration-700 ease-in-out">
+            </div>
+            
+            <div id="pagination-dots" class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-3 z-10">
+            </div>
+        </section>
+
+        <nav id="category-nav" class="py-10 bg-panel">
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                    
+                    <a href="/populer" class="category-item bg-mustard comic-border rounded-md p-4 sm:p-6 text-center comic-title-stroke text-3xl sm:text-4xl uppercase text-textblack comic-shadow flex flex-col items-center justify-center space-y-2 tap-highlight-transparent">
+                        <i class="fa-solid fa-fire text-2xl sm:text-3xl"></i>
+                        <span>Populer</span>
+                    </a>
+                    <a href="/recommend" class="category-item bg-mustard comic-border rounded-md p-4 sm:p-6 text-center comic-title-stroke text-3xl sm:text-4xl uppercase text-textblack comic-shadow flex flex-col items-center justify-center space-y-2 tap-highlight-transparent">
+                        <i class="fa-solid fa-star text-2xl sm:text-3xl"></i>
+                        <span>Rekomendasi</span>
+                    </a>
+                    <a href="/top" class="category-item bg-mustard comic-border rounded-md p-4 sm:p-6 text-center comic-title-stroke text-3xl sm:text-4xl uppercase text-textblack comic-shadow flex flex-col items-center justify-center space-y-2 tap-highlight-transparent">
+                        <i class="fa-solid fa-trophy text-2xl sm:text-3xl"></i>
+                        <span>Top Weekly</span>
+                    </a>
+                    <a href="latest.html" class="category-item bg-mustard comic-border rounded-md p-4 sm:p-6 text-center comic-title-stroke text-3xl sm:text-4xl uppercase text-textblack comic-shadow flex flex-col items-center justify-center space-y-2 tap-highlight-transparent">
+                        <i class="fa-solid fa-hourglass-half text-2xl sm:text-3xl"></i>
+                        <span>Ongoing</span>
+                    </a>
+                    
+                </div>
+            </div>
+        </nav>
+
+        <section id="latest-updates-section" class="container mx-auto px-4 py-12">
+            <h2 class="comic-title-stroke text-5xl sm:text-6xl mb-8 text-mustard">
+                Semua Komik Pilihan
+            </h2>
+            
+            <div id="comic-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+            </div>
+        </section>
+
+        <footer id="footer" class="bg-mustard border-t-8 comic-border p-4 sm:p-6 text-center shadow-inner mt-16">
+            <p class="font-bangers text-lg sm:text-xl text-textblack tracking-wide">
+                © 2025 KynayMic | Created by Farhan Kertadiwangsa
+            </p>
+        </footer>
+
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const API_URL = "/api/proxy/komikstation/home";
+            let sliderInterval;
+            let currentSlide = 0;
+            const TOTAL_SLIDES = 3;
+            
+            const loadingState = document.getElementById('loading-state');
+            const loadingText = document.getElementById('loading-text');
+            const errorState = document.getElementById('error-state');
+            const mainContent = document.getElementById('main-content');
+            const retryButton = document.getElementById('retry-button');
+            const searchInput = document.getElementById('search-input');
+            
+            const navbar = document.getElementById('navbar');
+            const bannerSlider = document.getElementById('banner-slider');
+            const sliderContainer = document.getElementById('slider-container');
+            const paginationDotsContainer = document.getElementById('pagination-dots');
+            const categoryNav = document.getElementById('category-nav');
+            const comicGrid = document.getElementById('comic-grid');
+            const footer = document.getElementById('footer');
+            const mainGridTitle = document.querySelector("#latest-updates-section h2");
+
+            gsap.registerPlugin(ScrollTrigger);
+            
+            function slugToTitle(slug) {
+                if (!slug) return "Unknown Title";
+                return slug.split('-')
+                           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                           .join(' ');
+            }
+            
+            function pickRandom(arr) {
+                if (!arr || arr.length === 0) return null;
+                return arr[Math.floor(Math.random() * arr.length)];
+            }
+
+            async function fetchData() {
+                showLoading();
+                const proxiedApiUrl = API_URL; 
+
+                try {
+                    const response = await fetch(proxiedApiUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        console.log("Data API diterima. Creator: " + data.creator);
+                        
+                        const trending = data.trending || [];
+                        const latestUpdates = data.latestUpdates || [];
+                        
+                        mainGridTitle.textContent = "Semua Komik Pilihan";
+                        
+                        const combinedData = [...trending, ...latestUpdates];
+                        const randomPick = pickRandom(combinedData);
+                        
+                        populateBanner(trending, latestUpdates, randomPick);
+                        
+                        const allComics = [...trending, ...latestUpdates];
+                        populateComicGrid(allComics);
+                        
+                        showContent();
+                    } else {
+                        throw new Error("API request was not successful.");
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil data komik:", error);
+                    showError();
+                }
+            }
+            
+            function showLoading() {
+                loadingState.classList.remove('hidden');
+                errorState.classList.add('hidden');
+                mainContent.classList.add('hidden');
+                
+                const loadingTl = gsap.timeline();
+                loadingTl.fromTo(loadingState.firstElementChild,
+                    { scale: 0.8, opacity: 0, rotation: -10 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "back.out(1.7)" }
+                );
+                loadingTl.fromTo(loadingText, 
+                    { scale: 0.9, opacity: 0.8 }, 
+                    { scale: 1.1, opacity: 1, duration: 1, yoyo: true, repeat: -1, ease: "power1.inOut" },
+                    "-=0.3"
+                );
+            }
+
+            function showError() {
+                loadingState.classList.add('hidden');
+                errorState.classList.remove('hidden');
+                mainContent.classList.add('hidden');
+                
+                const errorTl = gsap.timeline();
+                
+                errorTl.fromTo(errorState.firstElementChild,
+                    { scale: 0.7, opacity: 0, rotation: 15 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 0.7, ease: "elastic.out(1, 0.4)" }
+                );
+                errorTl.fromTo("#error-state .text-7xl", 
+                    { scale: 0, opacity: 0, rotation: -90 }, 
+                    { scale: 1, opacity: 1, rotation: 0, duration: 1, ease: "elastic.out(1, 0.3)" }, 
+                    "-=0.5"
+                );
+                errorTl.fromTo("#error-state .comic-title-stroke", 
+                    { x: -10 }, 
+                    { x: 10, duration: 0.05, repeat: 7, yoyo: true, ease: "power1.inOut" }, 
+                    "-=0.7"
+                );
+                errorTl.fromTo(retryButton, 
+                    { y: 50, opacity: 0, scale: 0.8 }, 
+                    { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 
+                    "-=0.4"
+                );
+            }
+
+            function showContent() {
+                const tl = gsap.timeline();
+                tl.to(loadingState, { 
+                    scale: 0.8, 
+                    opacity: 0, 
+                    duration: 0.4, 
+                    ease: "power1.in" 
+                })
+                .add(() => {
+                    loadingState.classList.add('hidden');
+                    errorState.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                })
+                .add(() => {
+                    runEntryAnimations();
+                    addInteractiveAnimations();
+                });
+            }
+
+            function populateBanner(trending, latest, randomPick) {
+                const slide1Data = trending[0];
+                const slide2Data = latest[0];
+                const slide3Data = randomPick;
+
+                const slide1HTML = createBannerSlide(slide1Data, 'trending');
+                const slide2HTML = createBannerSlide(slide2Data, 'latest');
+                const slide3HTML = createBannerSlide(slide3Data, 'popular');
+                
+                sliderContainer.innerHTML = slide1HTML + slide2HTML + slide3HTML;
+                setupSlider();
+            }
+
+            function createBannerSlide(comic, type) {
+                let title, infoText, slug, imageSrc;
+                const placeholder = 'https://placehold.co/220x300/FFF9E0/000?text=KynayMic';
+
+                if (!comic) {
+                    return `<div class="min-w-full px-2"><div class="relative flex items-center justify-center w-full aspect-[2/1] md:aspect-[21/9] overflow-hidden comic-border rounded-md comic-shadow bg-mustard group tap-highlight-transparent"><span class="font-bangers text-3xl">Data Komik Tidak Tersedia</span></div></div>`;
+                }
+
+                slug = comic.slug;
+                imageSrc = comic.imageSrc || placeholder;
+
+                if (type === 'trending') {
+                    title = comic.title;
+                    infoText = `<i class="fas fa-star text-yellow-400"></i> Rating ${comic.rating || '-'}`;
+                } else if (type === 'latest') {
+                    title = comic.title || slugToTitle(comic.slug);
+                    const chapter = comic.chapters && comic.chapters.length > 0 ? comic.chapters[0] : { title: 'Ch. ?' };
+                    infoText = `<i class="fas fa-clock text-blue-500"></i> ${chapter.title}`;
+                } else {
+                    title = comic.title;
+                    infoText = `<i class="fas fa-fire text-red-500"></i> Rating ${comic.rating || '-'}`;
+                }
+                
+                const proxiedImageSrc = imageSrc;
+
+                return `
+                <div class="min-w-full px-2">
+                    <a href="/detail?slug=${slug}" class="relative block w-full aspect-[2/1] md:aspect-[21/9] overflow-hidden comic-border rounded-md comic-shadow bg-mustard group tap-highlight-transparent">
+                        <img src="${proxiedImageSrc || placeholder}"
+                             alt="Background for ${title}"
+                             class="absolute inset-0 w-full h-full object-cover filter blur-lg scale-105 transition-transform duration-500 ease-in-out group-hover:scale-110"
+                             onerror="this.src='${placeholder}'">
+                        
+                        <div class="absolute inset-0 w-full h-full bg-black/40 backdrop-blur-sm"></div>
+                        
+                        <div class="relative z-10 w-full h-full p-4 sm:p-8 md:p-12 flex flex-col md:flex-row items-center justify-start text-white">
+                            <img src="${proxiedImageSrc || placeholder}"
+                                 alt="${title}"
+                                 class="block h-40 sm:h-56 md:h-full aspect-[2/3] object-cover border-4 border-black rounded-md shadow-lg flex-shrink-0"
+                                 onerror="this.src='${placeholder}'">
+                            
+                            <div class="md:ml-8 lg:ml-12 mt-4 md:mt-0 text-left w-full md:w-auto">
+                                <h3 class="comic-title-stroke text-3xl sm:text-4xl lg:text-6xl text-mustard" title="${title}">
+                                    ${title}
+                                </h3>
+                                <p class="font-bangers text-xl sm:text-2xl lg:text-3xl text-white bg-black/50 border-2 border-black rounded-full px-4 py-1 inline-block mt-4">
+                                    ${infoText}
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                `;
+            }
+
+            function populateComicGrid(comics) {
+                comicGrid.innerHTML = '';
+                const placeholder = 'https://placehold.co/220x300/FFF9E0/000?text=KynayMic';
+
+                const uniqueSlugs = new Set();
+                const uniqueComics = [];
+
+                comics.forEach(comic => {
+                    if (comic.slug && !uniqueSlugs.has(comic.slug)) {
+                        uniqueSlugs.add(comic.slug);
+                        uniqueComics.push(comic);
+                    }
+                });
+
+                uniqueComics.forEach((comic, index) => {
+                    
+                    const proxiedImageSrc = comic.imageSrc;
+                    
+                    let title, sub1, sub2;
+
+                    if (comic.latestChapter) {
+                        title = comic.title;
+                        sub1 = `<i class="fas fa-star text-yellow-500"></i> ${comic.rating || 'N/A'}`;
+                        sub2 = comic.latestChapter;
+                    } else if (comic.chapters) {
+                        title = comic.title || slugToTitle(comic.slug);
+                        const chapter = comic.chapters[0] || { title: 'Ch. ?', timeAgo: '?' };
+                        sub1 = `<i class="fas fa-clock text-blue-500"></i> ${chapter.title}`;
+                        sub2 = chapter.timeAgo;
+                    } else {
+                        title = comic.title;
+                        sub1 = `<i class="fas fa-star text-yellow-500"></i> ${comic.rating || 'N/A'}`;
+                        sub2 = (comic.genres && comic.genres.length > 0) ? comic.genres.join(', ') : 'No Genre';
+                    }
+
+                    const cardHTML = `
+                        <a href="/detail?slug=${comic.slug}" class="comic-card bg-white comic-border rounded-md overflow-hidden comic-shadow tap-highlight-transparent flex flex-col">
+                            <div class="relative w-full" style="padding-bottom: 140%;">
+                                <img src="${proxiedImageSrc || placeholder}"
+                                     alt="${title}"
+                                     class="absolute top-0 left-0 w-full h-full object-cover"
+                                     onerror="this.src='${placeholder}'">
+                            </div>
+                            <div class="p-3 sm:p-4 flex-grow flex flex-col">
+                                <h4 class="font-bangers text-xl sm:text-2xl truncate comic-title-stroke text-mustard" title="${title}">${title}</h4>
+                                
+                                <div class="mt-auto pt-2">
+                                    <p class="font-inter font-bold text-sm text-textblack truncate">
+                                        ${sub1}
+                                    </p>
+                                    <p class="font-inter text-xs text-gray-600 truncate">
+                                        ${sub2}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    comicGrid.insertAdjacentHTML('beforeend', cardHTML);
+                });
+
+                gsap.from(".comic-card:not(.gsap-animated)", {
+                    opacity: 0,
+                    y: 80,
+                    scale: 0.9,
+                    rotation: -3,
+                    stagger: 0.05,
+                    duration: 0.5,
+                    ease: "back.out(1.4)",
+                    scrollTrigger: {
+                        trigger: comicGrid,
+                        start: "top 85%",
+                        toggleActions: "play none none none"
+                    },
+                    onComplete: function() {
+                        this.targets().forEach(card => card.classList.add('gsap-animated'));
+                    }
+                });
+            }
+            
+            function setupSlider() {
+                paginationDotsContainer.innerHTML = '';
+                for (let i = 0; i < TOTAL_SLIDES; i++) {
+                    const dot = document.createElement('button');
+                    dot.classList.add('w-4', 'h-4', 'rounded-full', 'comic-border', 'border-2', 'transition-all', 'duration-300');
+                    dot.classList.add(i === 0 ? 'bg-textblack' : 'bg-white');
+                    dot.addEventListener('click', () => {
+                        goToSlide(i);
+                        resetSliderInterval();
+                    });
+                    paginationDotsContainer.appendChild(dot);
+                }
+                resetSliderInterval();
+            }
+
+            function goToSlide(slideIndex) {
+                currentSlide = slideIndex % TOTAL_SLIDES;
+                gsap.to(sliderContainer, { 
+                    xPercent: -(currentSlide * 100), 
+                    duration: 0.7, 
+                    ease: "power3.inOut"
+                });
+                
+                Array.from(paginationDotsContainer.children).forEach((dot, index) => {
+                    dot.classList.toggle('bg-textblack', index === currentSlide);
+                    dot.classList.toggle('bg-white', index !== currentSlide);
+                });
+            }
+
+            function resetSliderInterval() {
+                clearInterval(sliderInterval);
+                sliderInterval = setInterval(() => {
+                    goToSlide(currentSlide + 1);
+                }, 5000);
+            }
+            
+            function runEntryAnimations() {
+                const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+
+                tl.from(navbar, { 
+                    yPercent: -120, 
+                    opacity: 0, 
+                    duration: 1, 
+                    ease: "bounce.out" 
+                });
+
+                tl.from("#navbar a", { 
+                    scale: 0.5, 
+                    skewX: 20, 
+                    opacity: 0, 
+                    duration: 0.7, 
+                    ease: "elastic.out(1, 0.5)" 
+                }, "-=0.7");
+
+                tl.from("#navbar div", { 
+                    xPercent: 100, 
+                    opacity: 0, 
+                    duration: 0.5 
+                }, "-=0.7");
+
+                tl.from(bannerSlider, { 
+                    opacity: 0, 
+                    y: -50, 
+                    duration: 0.5 
+                }, "-=0.5");
+
+                tl.from(".category-item", { 
+                    opacity: 0, 
+                    y: 50, 
+                    scale: 0.7, 
+                    rotation: 10,
+                    stagger: { 
+                        amount: 0.4,
+                        from: "random"
+                    }, 
+                    duration: 0.5, 
+                    ease: "back.out(1.7)" 
+                }, "-=0.2");
+
+                tl.from(mainGridTitle, {
+                    opacity: 0,
+                    x: -100,
+                    duration: 0.6,
+                    ease: "power3.out"
+                }, "-=0.3");
+
+                gsap.from(footer, { 
+                    yPercent: 100, 
+                    opacity: 0, 
+                    duration: 1, 
+                    ease: "power2.out",
+                    scrollTrigger: {
+                        trigger: footer,
+                        start: "top 98%",
+                        toggleActions: "play none none none"
+                    }
+                });
+                
+            }
+            
+            function addInteractiveAnimations() {
+                
+                const categoryItems = document.querySelectorAll('.category-item');
+                categoryItems.forEach(item => {
+                    const hoverTl = gsap.timeline({ paused: true })
+                        .to(item, { 
+                            scale: 1.05, 
+                            y: -8,
+                            boxShadow: "10px 10px 0px #000000",
+                            x: -4,
+                            duration: 0.2, 
+                            ease: "power1.out" 
+                        })
+                        .to(item, { 
+                            rotation: 2, 
+                            duration: 0.1, 
+                            yoyo: true, 
+                            repeat: 1, 
+                            ease: "power1.inOut" 
+                        }, "-=0.1");
+                    
+                    item.addEventListener('mouseenter', () => hoverTl.play());
+                    item.addEventListener('mouseleave', () => hoverTl.reverse());
+                });
+
+                comicGrid.addEventListener('mouseenter', (e) => {
+                    const targetCard = e.target.closest('.comic-card');
+                    if (!targetCard) return;
+                    
+                    gsap.to(targetCard, { 
+                        scale: 1.03, 
+                        y: -5, 
+                        boxShadow: "10px 10px 0px #000000", 
+                        duration: 0.2,
+                        ease: "power1.out"
+                    });
+                }, true);
+
+                comicGrid.addEventListener('mouseleave', (e) => {
+                    const targetCard = e.target.closest('.comic-card');
+                    if (!targetCard) return;
+
+                    gsap.to(targetCard, { 
+                        scale: 1, 
+                        y: 0, 
+                        boxShadow: "6px 6px 0px #000000", 
+                        duration: 0.2,
+                        ease: "power1.out"
+                    });
+                }, true);
+                
+                searchInput.addEventListener('focus', () => {
+                    gsap.to(searchInput, { 
+                        scale: 1.02, 
+                        boxShadow: "0 0 0 4px #FFC300, 8px 8px 0px #000000",
+                        backgroundColor: "#FFFFFF", 
+                        duration: 0.2 
+                    });
+                });
+                searchInput.addEventListener('blur', () => {
+                    gsap.to(searchInput, { 
+                        scale: 1, 
+                        boxShadow: "6px 6px 0px #000000",
+                        backgroundColor: "#FFF9E0", 
+                        duration: 0.2 
+                    });
+                });
+                
+                const retryHoverTl = gsap.timeline({ paused: true })
+                    .to(retryButton, { 
+                        scale: 1.1, 
+                        rotation: -3, 
+                        boxShadow: "10px 10px 0px #000000",
+                        x: -4,
+                        y: -4,
+                        duration: 0.2, 
+                        ease: "back.out(2)" 
+                    });
+                retryButton.addEventListener('mouseenter', () => retryHoverTl.play());
+                retryButton.addEventListener('mouseleave', () => retryHoverTl.reverse());
+                
+                document.addEventListener('mousedown', (e) => {
+                    const targetButton = e.target.closest('#retry-button, .category-item');
+                    if (targetButton) {
+                        gsap.to(targetButton, { scale: 0.95, duration: 0.1, yoyo: true, repeat: 1, ease: "power1.in" });
+                    }
+                }, false);
+            }
+
+            retryButton.addEventListener('click', () => {
+                gsap.to(errorState, {
+                    scale: 0.8,
+                    opacity: 0,
+                    duration: 0.3,
+                    ease: "power1.in",
+                    onComplete: fetchData
+                });
+            });
+
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && searchInput.value.trim() !== '') {
+                    const query = encodeURIComponent(searchInput.value.trim());
+                    window.location.href = `/search?query=${query}`;
+                }
+            });
+
+            fetchData();
+            
+        });
+    </script>
+</body>
+</html>

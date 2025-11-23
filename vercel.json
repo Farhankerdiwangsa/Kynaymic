@@ -1,0 +1,40 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+
+  "functions": {
+    "api/proxy.js": {
+      "maxDuration": 30,
+      "memory": 256
+    },
+    "api/proxy-img.js": {
+      "maxDuration": 45,
+      "memory": 256
+    }
+  },
+
+  "rewrites": [
+    { "source": "/api/proxy/(.*)", "destination": "/api/proxy?rest=$1" },
+    { "source": "/api/proxy-img", "destination": "/api/proxy-img" },
+
+    { "source": "/detail", "destination": "/detail.html" },
+    { "source": "/chapter", "destination": "/chapter.html" },
+    { "source": "/populer", "destination": "/populer.html" },
+    { "source": "/recommend", "destination": "/recommend.html" },
+    { "source": "/top", "destination": "/top.html" },
+    { "source": "/latest", "destination": "/latest.html" },
+    { "source": "/search", "destination": "/search.html" },
+    { "source": "/home", "destination": "/index.html" }
+  ],
+
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, Origin, Accept" }
+      ]
+    }
+  ]
+}
